@@ -7,6 +7,7 @@ import { Platform } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { SessionProvider, useSession } from '@/lib/session';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { SWUpdateBanner } from '@/components/sw-update-banner';
 
 if (Platform.OS !== 'web') {
   SplashScreen.preventAutoHideAsync();
@@ -52,6 +53,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <SessionProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <SWUpdateBanner />
           <RootNavigator />
         </ThemeProvider>
       </SessionProvider>
