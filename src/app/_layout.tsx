@@ -2,11 +2,14 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { Platform } from 'react-native';
 
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { SessionProvider, useSession } from '@/lib/session';
 
-SplashScreen.preventAutoHideAsync();
+if (Platform.OS !== 'web') {
+  SplashScreen.preventAutoHideAsync();
+}
 
 function RootNavigator() {
   const { session, membership, loading } = useSession();
@@ -15,7 +18,9 @@ function RootNavigator() {
 
   useEffect(() => {
     if (loading) return;
-    SplashScreen.hideAsync();
+    if (Platform.OS !== 'web') {
+      SplashScreen.hideAsync();
+    }
     const inAuthGroup = segments[0] === '(auth)';
     const inTeamSetup = segments[0] === 'team-setup';
     if (!session && !inAuthGroup) {
