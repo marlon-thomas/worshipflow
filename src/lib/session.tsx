@@ -59,6 +59,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       loadMembership(data.session?.user.id).finally(() => setLoading(false));
+    }).catch((err) => {
+      console.error('[SessionProvider] getSession failed:', err);
+      setLoading(false);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
