@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import * as Linking from 'expo-linking';
+import { shareText } from '@/lib/share';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -54,6 +56,17 @@ export default function TeamSetupScreen() {
       setBusy(false);
     }
   };
+
+  async function shareTeamViaWhatsApp(inviteCode: string, teamName: string) {
+    const text = `🎵 Join "${teamName}" on WorshipFlow!\n\nInvite code: ${inviteCode}\n\nGet the app: ${window.location.origin}/worshipflow`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    await Linking.openURL(url);
+  }
+
+  async function shareTeamViaShareSheet(inviteCode: string, teamName: string) {
+    const text = `🎵 Join "${teamName}" on WorshipFlow!\n\nInvite code: ${inviteCode}\n\nGet the app: ${window.location.origin}/worshipflow`;
+    await shareText('Join WorshipFlow Team', text);
+  }
 
   const inputStyle = [
     styles.input,
@@ -116,6 +129,31 @@ export default function TeamSetupScreen() {
             </Pressable>
           </ThemedView>
 
+          {(teamName.trim() || inviteCode.trim()) && (
+            <ThemedView type="backgroundElement" style={styles.card}>
+              <ThemedText type="smallBold">Share your team</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                Invite band members via WhatsApp or any messaging app.
+              </ThemedText>
+              <View style={styles.shareRow}>
+                <Pressable
+                  style={styles.shareButtonWhatsApp}
+                  onPress={() => shareTeamViaWhatsApp(inviteCode.trim() || 'N/A', teamName.trim() || 'My Team')}>
+                  <ThemedText type="smallBold" style={{ color: '#fff' }}>
+                    📱 WhatsApp
+                  </ThemedText>
+                </Pressable>
+                <Pressable
+                  style={styles.shareButtonGeneric}
+                  onPress={() => shareTeamViaShareSheet(inviteCode.trim() || 'N/A', teamName.trim() || 'My Team')}>
+                  <ThemedText type="smallBold" style={{ color: theme.background }}>
+                    📤 Share via…
+                  </ThemedText>
+                </Pressable>
+              </View>
+            </ThemedView>
+          )}
+
           {busy && <ActivityIndicator color={theme.text} />}
           {message && <ThemedText type="small">{message}</ThemedText>}
         </KeyboardAvoidingView>
@@ -153,5 +191,26 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two + 2,
     alignItems: 'center',
     marginTop: Spacing.one,
+  },
+  shareRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    marginTop: Spacing.one,
+  },
+  shareButtonWhatsApp: {
+    flex: 1,
+    backgroundColor: '#25D366',
+    borderRadius: Spacing.two,
+    paddingVertical: Spacing.two + 2,
+    alignItems: 'center',
+  },
+  shareButtonGeneric: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#888',
+    borderRadius: Spacing.two,
+    paddingVertical: Spacing.two + 2,
+    alignItems: 'center',
   },
 });

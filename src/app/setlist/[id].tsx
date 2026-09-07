@@ -1,8 +1,9 @@
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
+import { shareText } from '@/lib/share';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ChordChart } from '@/components/chord-chart';
 import { KeyPicker } from '@/components/key-picker';
@@ -111,7 +112,7 @@ export default function SetlistDetailScreen() {
     }
   }
 
-  function share() {
+  async function share() {
     if (!setlist) return;
     const lines = [
       `🎵 ${setlist.title} — ${formatDate(setlist.service_date)}`,
@@ -127,7 +128,28 @@ export default function SetlistDetailScreen() {
         ].filter(Boolean);
       }),
     ];
-    Share.share({ message: lines.join('\n') });
+    await shareText('WorshipFlow Setlist', lines.join('\n'));
+  }
+
+  async function shareViaWhatsApp() {
+    if (!setlist) return;
+    const lines = [
+      `🎵 ${setlist.title} — ${formatDate(setlist.service_date)}`,
+      setlist.notes ? `\n${setlist.notes}` : '',
+      setlist.spotify_playlist_url ? `\n🎧 Spotify playlist: ${setlist.spotify_playlist_url}` : '',
+      '',
+      ...items.flatMap((item, idx) => {
+        const s = item.songs;
+        return [
+          `${idx + 1}. ${s.title}${s.artist ? ` (${s.artist})` : ''} — Key: ${item.selected_key}`,
+          s.spotify_url ? `   🎧 Spotify: ${s.spotify_url}` : '',
+          s.youtube_url ? `   ▶️ YouTube: ${s.youtube_url}` : '',
+        ].filter(Boolean);
+      }),
+    ];
+    const text = lines.join('\n') + `\n\n— Shared via WorshipFlow: ${window.location.origin}/worshipflow`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    Linking.openURL(url);
   }
 
   if (loading) {
@@ -162,6 +184,11 @@ export default function SetlistDetailScreen() {
               <Pressable style={[styles.headerButton, { backgroundColor: theme.text }]} onPress={share}>
                 <ThemedText type="smallBold" style={{ color: theme.background }}>
                   Send to team
+                </ThemedText>
+              </Pressable>
+              <Pressable style={[styles.headerButton, { backgroundColor: '#25D366' }]} onPress={shareViaWhatsApp}>
+                <ThemedText type="smallBold" style={{ color: '#fff' }}>
+                  📱 WhatsApp
                 </ThemedText>
               </Pressable>
               <Pressable

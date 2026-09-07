@@ -1,4 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
+import * as Linking from 'expo-linking';
+import { shareText } from '@/lib/share';
 import * as WebBrowser from 'expo-web-browser';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -80,6 +82,21 @@ export default function TeamScreen() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function shareTeamViaWhatsApp() {
+    if (!team) return;
+    const text = `🎵 Join "${team.name}" on WorshipFlow!\n\nInvite code: ${team.invite_code}\n\nGet the app: ${window.location.origin}/worshipflow`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    await Linking.openURL(url);
+  }
+
+  async function shareTeamViaShareSheet() {
+    if (!team) return;
+    const text = `🎵 Join "${team.name}" on WorshipFlow!\n\nInvite code: ${team.invite_code}\n\nGet the app: ${window.location.origin}/worshipflow`;
+    await shareText('Join WorshipFlow Team', text);
+  }
+
+  const isLeader = membership?.role === 'leader';
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -95,34 +112,53 @@ export default function TeamScreen() {
             <ThemedText type="subtitle">{team?.invite_code}</ThemedText>
             <ThemedText type="linkPrimary">{copied ? 'Copied!' : 'Tap to copy'}</ThemedText>
           </Pressable>
+          <View style={styles.shareRow}>
+            <Pressable style={styles.shareButtonWhatsApp} onPress={shareTeamViaWhatsApp}>
+              <ThemedText type="smallBold" style={{ color: '#fff' }}>
+                📱 WhatsApp
+              </ThemedText>
+            </Pressable>
+            <Pressable style={styles.shareButtonGeneric} onPress={shareTeamViaShareSheet}>
+              <ThemedText type="smallBold" style={{ color: theme.background }}>
+                📤 Share via…
+              </ThemedText>
+            </Pressable>
+          </View>
         </ThemedView>
 
         <ThemedView type="backgroundElement" style={styles.inviteCard}>
-          <ThemedText type="smallBold">Spotify connection</ThemedText>
+          <ThemedText type="smallBold">🎧 Spotify for playlists</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            The leader who connects their Spotify account becomes the source for auto-created setlist playlists.
-            Team members just open the shared playlist link — no login needed.
+            Only ONE person (usually the worship leader) needs to connect their Spotify account.
+            This person's account will be used to auto-create and sync setlist playlists.
+            Everyone else just opens the shared playlist link — no Spotify login needed!
           </ThemedText>
           {spotify?.connected ? (
             <View style={styles.spotifyRow}>
               <ThemedText type="small" style={{ color: '#1DB954', fontWeight: '700' }}>
                 ● Connected as {spotify.spotifyDisplayName}
               </ThemedText>
-              <Pressable onPress={disconnectSpotify} disabled={spotifyBusy}>
-                <ThemedText type="small" themeColor="textSecondary">
-                  Disconnect
-                </ThemedText>
-              </Pressable>
+              {isLeader && (
+                <Pressable onPress={disconnectSpotify} disabled={spotifyBusy}>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Disconnect
+                  </ThemedText>
+                </Pressable>
+              )}
             </View>
-          ) : (
+          ) : isLeader ? (
             <Pressable
               style={[styles.spotifyButton, { opacity: spotifyBusy ? 0.6 : 1 }]}
               disabled={spotifyBusy}
               onPress={connectSpotify}>
               <ThemedText type="smallBold" style={{ color: '#fff' }}>
-                Connect Spotify
+                Connect Spotify (Leader only)
               </ThemedText>
             </Pressable>
+          ) : (
+            <ThemedText type="small" themeColor="textSecondary" style={styles.waitingText}>
+              Waiting for leader to connect Spotify…
+            </ThemedText>
           )}
           {spotifyError && <ThemedText type="small">{spotifyError}</ThemedText>}
         </ThemedView>
@@ -139,7 +175,7 @@ export default function TeamScreen() {
               <View>
                 <ThemedText type="default">{item.display_name || 'Team member'}</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
-                  {item.role}
+                  {item.role === 'leader' ? '👑 Leader' : '🎸 Member'}
                 </ThemedText>
               </View>
               {item.user_id === membership?.user_id && (
@@ -195,6 +231,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  shareRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    marginTop: Spacing.two,
+  },
+  shareButtonWhatsApp: {
+    flex: 1,
+    backgroundColor: '#25D366',
+    borderRadius: Spacing.two,
+    paddingVertical: Spacing.two + 2,
+    alignItems: 'center',
+  },
+  shareButtonGeneric: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#888',
+    borderRadius: Spacing.two,
+    paddingVertical: Spacing.two + 2,
+    alignItems: 'center',
+  },
+  waitingText: {
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: Spacing.two,
   },
   signOut: {
     borderWidth: 1,

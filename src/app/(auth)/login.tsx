@@ -10,7 +10,7 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
   const theme = useTheme();
-  const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
+  const [mode, setMode] = useState<'sign-in' | 'sign-up' | 'forgot'>('sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -23,10 +23,16 @@ export default function LoginScreen() {
       if (mode === 'sign-in') {
         const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) throw error;
-      } else {
+      } else if (mode === 'sign-up') {
         const { error } = await supabase.auth.signUp({ email: email.trim(), password });
         if (error) throw error;
         setMessage('Account created. If email confirmation is enabled, check your inbox before signing in.');
+      } else {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: `${window.location.origin}/worshipflow/reset-password`,
+        });
+        if (error) throw error;
+        setMessage('Password reset email sent. Check your inbox.');
       }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : String(err));
@@ -63,14 +69,16 @@ export default function LoginScreen() {
               value={email}
               onChangeText={setEmail}
             />
-            <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.backgroundSelected, backgroundColor: theme.backgroundElement }]}
-              placeholder="Password"
-              placeholderTextColor={theme.textSecondary}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
+            {(mode === 'sign-in' || mode === 'sign-up') && (
+              <TextInput
+                style={[styles.input, { color: theme.text, borderColor: theme.backgroundSelected, backgroundColor: theme.backgroundElement }]}
+                placeholder="Password"
+                placeholderTextColor={theme.textSecondary}
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+              />
+            )}
             <Pressable
               style={[styles.primaryButton, { backgroundColor: theme.text, opacity: busy ? 0.6 : 1 }]}
               disabled={busy}
@@ -79,15 +87,32 @@ export default function LoginScreen() {
                 <ActivityIndicator color={theme.background} />
               ) : (
                 <ThemedText type="smallBold" style={{ color: theme.background }}>
-                  {mode === 'sign-in' ? 'Sign in' : 'Create account'}
+                  {mode === 'sign-in' ? 'Sign in' : mode === 'sign-up' ? 'Create account' : 'Send reset link'}
                 </ThemedText>
               )}
             </Pressable>
-            <Pressable onPress={() => setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}>
-              <ThemedText type="linkPrimary" style={styles.switchMode}>
-                {mode === 'sign-in' ? 'New here? Create an account' : 'Have an account? Sign in'}
-              </ThemedText>
-            </Pressable>
+            <View style={styles.modeRow}>
+              {mode === 'sign-in' && (
+                <>
+                  <Pressable onPress={() => setMode('sign-up')}>
+                    <ThemedText type="linkPrimary">New here? Create an account</ThemedText>
+                  </Pressable>
+                  <Pressable onPress={() => setMode('forgot')} style={{ marginTop: Spacing.two }}>
+                    <ThemedText type="linkPrimary">Forgot password?</ThemedText>
+                  </Pressable>
+                </>
+              )}
+              {mode === 'sign-up' && (
+                <Pressable onPress={() => setMode('sign-in')}>
+                  <ThemedText type="linkPrimary">Have an account? Sign in</ThemedText>
+                </Pressable>
+              )}
+              {mode === 'forgot' && (
+                <Pressable onPress={() => setMode('sign-in')}>
+                  <ThemedText type="linkPrimary">Back to sign in</ThemedText>
+                </Pressable>
+              )}
+            </View>
             {message && <ThemedText type="small">{message}</ThemedText>}
           </View>
         </KeyboardAvoidingView>
@@ -126,4 +151,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   switchMode: { textAlign: 'center' },
+  modeRow: { gap: Spacing.two, flexDirection: 'column' },
 });
