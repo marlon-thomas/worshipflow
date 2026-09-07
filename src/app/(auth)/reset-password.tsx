@@ -9,12 +9,27 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
+function parseHashParams(): { access_token?: string; refresh_token?: string; type?: string } {
+  if (typeof window === 'undefined') return {};
+  const hash = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash);
+  return {
+    access_token: params.get('access_token') || undefined,
+    refresh_token: params.get('refresh_token') || undefined,
+    type: params.get('type') || undefined,
+  };
+}
+
 export default function ResetPasswordScreen() {
-  const { access_token, refresh_token, type } = useLocalSearchParams<{
+  const searchParams = useLocalSearchParams<{
     access_token?: string;
     refresh_token?: string;
     type?: string;
   }>();
+  const hashParams = parseHashParams();
+  const access_token = searchParams.access_token ?? hashParams.access_token;
+  const refresh_token = searchParams.refresh_token ?? hashParams.refresh_token;
+  const type = searchParams.type ?? hashParams.type;
   const theme = useTheme();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
