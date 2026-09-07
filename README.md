@@ -67,6 +67,7 @@ without an App Store. Set `web.output` to `static` in **app.json** (already done
 
 ```
 public/
+  .nojekyll             prevents GitHub Pages from dropping _expo/ assets
   manifest.json         app name, icons, standalone display, colors
   sw.js                 minimal service worker (fetch passthrough, no caching)
   icon-192.png          install icon (192px)
@@ -93,20 +94,31 @@ HTML file per route (deep links like `/login` work because they're real files).
 
 ## Deploy
 
-`npx expo export -p web` produces a fully static `dist/` — deployable to any static host
-with no server config. Deep links resolve as real files, so no SPA rewrite rules are needed.
+**Live:** https://marlon-thomas.github.io/worshipflow/
 
-Vercel:
+`npx expo export -p web` produces a fully static `dist/` — deployable to any static host.
+Deep links resolve as real files, so no SPA rewrite rules are needed.
+
+### GitHub Pages (current)
+
+Rebuild + deploy in one shot:
+```sh
+EXPO_PUBLIC_BASE_URL=/worshipflow npx expo export -p web
+npx gh-pages -t -d dist
+```
+
+The `EXPO_PUBLIC_BASE_URL` env var prefixes all asset/route paths so the app
+works under the `/worshipflow/` subpath. Omit it for root-domain or local dev.
+
+### Vercel
 ```sh
 npx vercel dist --prod
 ```
 
-Netlify:
+### Netlify
 ```sh
 npx netlify deploy --dir=dist --prod
 ```
-
-GitHub Pages / any static host: upload the contents of `dist/` to the site root.
 
 > Notes: `dist/`, `.env`, and `.env.*` are gitignored. `EXPO_PUBLIC_*` values are baked in at
 > export time, so rebuild before deploying to pick up changes to `.env`.
