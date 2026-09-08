@@ -89,6 +89,21 @@ export default function TeamScreen() {
     await Linking.openURL(url);
   }
 
+  async function shareTeamViaEmail() {
+    if (!team) return;
+    const subject = encodeURIComponent(`Join "${team.name}" on WorshipFlow`);
+    const body = encodeURIComponent(`🎵 Join "${team.name}" on WorshipFlow!\n\nInvite code: ${team.invite_code}\n\nGet the app: ${window.location.origin}/worshipflow`);
+    const url = `mailto:?subject=${subject}&body=${body}`;
+    await Linking.openURL(url);
+  }
+
+  async function shareTeamViaSMS() {
+    if (!team) return;
+    const text = encodeURIComponent(`🎵 Join "${team.name}" on WorshipFlow!\n\nInvite code: ${team.invite_code}\n\nGet the app: ${window.location.origin}/worshipflow`);
+    const url = `sms:?body=${text}`;
+    await Linking.openURL(url);
+  }
+
   async function shareTeamViaShareSheet() {
     if (!team) return;
     const text = `🎵 Join "${team.name}" on WorshipFlow!\n\nInvite code: ${team.invite_code}\n\nGet the app: ${window.location.origin}/worshipflow`;
@@ -118,9 +133,19 @@ export default function TeamScreen() {
                 📱 WhatsApp
               </ThemedText>
             </Pressable>
+            <Pressable style={styles.shareButtonEmail} onPress={shareTeamViaEmail}>
+              <ThemedText type="smallBold" style={{ color: '#fff' }}>
+                📧 Email
+              </ThemedText>
+            </Pressable>
+            <Pressable style={styles.shareButtonSMS} onPress={shareTeamViaSMS}>
+              <ThemedText type="smallBold" style={{ color: '#fff' }}>
+                💬 SMS
+              </ThemedText>
+            </Pressable>
             <Pressable style={styles.shareButtonGeneric} onPress={shareTeamViaShareSheet}>
               <ThemedText type="smallBold" style={{ color: theme.background }}>
-                📤 Share via…
+                📤 More…
               </ThemedText>
             </Pressable>
           </View>
@@ -234,18 +259,37 @@ const styles = StyleSheet.create({
   },
   shareRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.two,
     marginTop: Spacing.two,
   },
   shareButtonWhatsApp: {
     flex: 1,
+    minWidth: 100,
     backgroundColor: '#25D366',
+    borderRadius: Spacing.two,
+    paddingVertical: Spacing.two + 2,
+    alignItems: 'center',
+  },
+  shareButtonEmail: {
+    flex: 1,
+    minWidth: 100,
+    backgroundColor: '#EA4335',
+    borderRadius: Spacing.two,
+    paddingVertical: Spacing.two + 2,
+    alignItems: 'center',
+  },
+  shareButtonSMS: {
+    flex: 1,
+    minWidth: 100,
+    backgroundColor: '#34A853',
     borderRadius: Spacing.two,
     paddingVertical: Spacing.two + 2,
     alignItems: 'center',
   },
   shareButtonGeneric: {
     flex: 1,
+    minWidth: 100,
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#888',
