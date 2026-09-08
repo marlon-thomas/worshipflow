@@ -23,13 +23,15 @@ function RootNavigator() {
     if (Platform.OS !== 'web') {
       SplashScreen.hideAsync();
     }
+    // Don't redirect away from reset-password screen (needs session to update password)
     const inAuthGroup = segments[0] === '(auth)';
     const inTeamSetup = segments[0] === 'team-setup';
-    if (!session && !inAuthGroup) {
+    const onResetPassword = segments[0] === 'reset-password';
+    if (!session && !inAuthGroup && !onResetPassword) {
       router.replace('/login');
-    } else if (session && !membership && !inTeamSetup) {
+    } else if (session && !membership && !inTeamSetup && !onResetPassword) {
       router.replace('/team-setup');
-    } else if (session && membership && (inAuthGroup || inTeamSetup)) {
+    } else if (session && membership && (inAuthGroup || inTeamSetup) && !onResetPassword) {
       router.replace('/');
     }
   }, [session, membership, loading, segments]);
