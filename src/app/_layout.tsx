@@ -26,7 +26,7 @@ function RootNavigator() {
     // Don't redirect away from reset-password screen (needs session to update password)
     const inAuthGroup = segments[0] === '(auth)';
     const inTeamSetup = segments[0] === 'team-setup';
-    const onResetPassword = segments[0] === 'reset-password';
+    const onResetPassword = segments[0] === 'reset-password' as typeof segments[0] | 'reset-password';
     if (!session && !inAuthGroup && !onResetPassword) {
       router.replace('/login');
     } else if (session && !membership && !inTeamSetup && !onResetPassword) {

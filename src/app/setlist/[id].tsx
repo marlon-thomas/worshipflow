@@ -4,6 +4,7 @@ import { shareText } from '@/lib/share';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
 
 import { ChordChart } from '@/components/chord-chart';
 import { KeyPicker } from '@/components/key-picker';
@@ -16,6 +17,7 @@ import { syncSetlistPlaylist } from '@/lib/spotify';
 import { supabase } from '@/lib/supabase';
 import { keyDelta, keyUsesFlats } from '@/lib/transpose';
 import { Setlist, SetlistSong, Song } from '@/lib/types';
+import { useSession } from '@/lib/session';
 
 interface SetlistItem extends SetlistSong {
   songs: Song;
@@ -29,6 +31,7 @@ function formatDate(iso: string): string {
 export default function SetlistDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
+  const { team, session } = useSession();
   const [setlist, setSetlist] = useState<Setlist | null>(null);
   const [items, setItems] = useState<SetlistItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,24 +40,70 @@ export default function SetlistDetailScreen() {
   const [library, setLibrary] = useState<Song[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [setlistRes, itemsRes] = await Promise.all([
-      supabase.from('setlists').select('*').eq('id', id).single(),
-      supabase
-        .from('setlist_songs')
-        .select('*, songs(*)')
-        .eq('setlist_id', id)
-        .order('position', { ascending: true }),
-    ]);
-    setSetlist((setlistRes.data as Setlist) ?? null);
-    setItems(((itemsRes.data as SetlistItem[]) ?? []).filter((i) => i.songs));
-    setLoading(false);
-  }, [id]);
+    if (!team) {
+      setError('No team selected');
+      setLoading(false);
+      return;
+    }
+    try {
+      const [setlistRes, itemsRes] = await Promise.all([
+        supabase.from('setlists').select('*').eq('id', id).single(),
+        supabase
+          .from('setlist_songs')
+          .select('*, songs(*)')
+          .eq('setlist_id', id)
+          .order('position', { ascending: true }),
+      ]);
+      if (setlistRes.error || !setlistRes.data) {
+        throw new Error(setlistRes.error?.message || 'Setlist not found');
+      }
+      // Verify team access
+      if ((setlistRes.data as Setlist).team_id !== team.id) {
+        throw new Error('You do not have access to this setlist');
+      }
+      setSetlist((setlistRes.data as Setlist) ?? null);
+      setItems(((itemsRes.data as SetlistItem[]) ?? []).filter((i) => i.songs));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load setlist');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, team?.id]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  if (loading) {
+    return (
+      <ThemedView style={[styles.container, styles.center]}>
+        <ActivityIndicator color={theme.text} />
+      </ThemedView>
+    );
+  }
+  if (error) {
+    return (
+      <ThemedView style={[styles.container, styles.center]}>
+        <ThemedText type="default">{error}</ThemedText>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <ThemedText type="linkPrimary">Go back</ThemedText>
+        </Pressable>
+      </ThemedView>
+    );
+  }
+  if (!setlist) {
+    return (
+      <ThemedView style={[styles.container, styles.center]}>
+        <ThemedText>Setlist not found.</ThemedText>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <ThemedText type="linkPrimary">Go back</ThemedText>
+        </Pressable>
+      </ThemedView>
+    );
+  }
 
   async function openPicker() {
     if (!setlist) return;
@@ -462,4 +511,5 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
   },
   pickerArt: { width: 40, height: 40, borderRadius: Spacing.one },
+  backButton: { marginTop: Spacing.three, paddingHorizontal: Spacing.four, paddingVertical: Spacing.two },
 });

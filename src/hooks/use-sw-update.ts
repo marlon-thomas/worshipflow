@@ -1,24 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
 export function useSWUpdate() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !('serviceWorker' in navigator)) return;
 
-    let registration: ServiceWorkerRegistration | null = null;
+    let checkInterval: ReturnType<typeof setInterval> | null = null;
+    let refreshing = false;
 
     navigator.serviceWorker.ready.then((reg) => {
-      registration = reg;
+      registrationRef.current = reg;
 
       // Check for updates periodically
-      const checkInterval = setInterval(() => {
+      checkInterval = setInterval(() => {
         reg.update();
       }, 60 * 1000); // every minute
 
       // Listen for controller change (new SW took over)
-      let refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (refreshing) return;
         refreshing = true;
@@ -35,20 +36,16 @@ export function useSWUpdate() {
           }
         });
       });
-
-      return () => {
-        clearInterval(checkInterval);
-      };
     });
 
     return () => {
-      // cleanup
+      if (checkInterval) clearInterval(checkInterval);
     };
   }, []);
 
   const applyUpdate = () => {
-    if (registration?.waiting) {
-      registration.waiting.postMessage('SKIP_WAITING');
+    if (registrationRef.current?.waiting) {
+      registrationRef.current.waiting.postMessage('SKIP_WAITING');
     }
   };
 

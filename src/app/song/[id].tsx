@@ -2,6 +2,7 @@ import * as Linking from 'expo-linking';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
 
 import { ChordChart } from '@/components/chord-chart';
 import { ThemedText } from '@/components/themed-text';
@@ -12,26 +13,45 @@ import { stripChords, transposeChordPro } from '@/lib/chordpro';
 import { supabase } from '@/lib/supabase';
 import { keyUsesFlats, transposeChord } from '@/lib/transpose';
 import { Song } from '@/lib/types';
+import { useSession } from '@/lib/session';
 
 export default function SongScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
+  const { team } = useSession();
   const [song, setSong] = useState<Song | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'lyrics' | 'chords'>('chords');
   const [steps, setSteps] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!team) {
+      setError('No team selected');
+      setLoading(false);
+      return;
+    }
     supabase
       .from('songs')
       .select('*')
       .eq('id', id)
       .single()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error || !data) {
+          setError(error?.message || 'Song not found');
+          setLoading(false);
+          return;
+        }
+        // Verify team access
+        if ((data as Song).team_id !== team.id) {
+          setError('You do not have access to this song');
+          setLoading(false);
+          return;
+        }
         setSong((data as Song) ?? null);
         setLoading(false);
       });
-  }, [id]);
+  }, [id, team?.id]);
 
   const transposed = useMemo(() => {
     if (!song?.chordpro) return '';
@@ -45,10 +65,13 @@ export default function SongScreen() {
       </ThemedView>
     );
   }
-  if (!song) {
+  if (error || !song) {
     return (
       <ThemedView style={[styles.container, styles.center]}>
-        <ThemedText>Song not found.</ThemedText>
+        <ThemedText type="default">{error || 'Song not found.'}</ThemedText>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <ThemedText type="linkPrimary">Go back</ThemedText>
+        </Pressable>
       </ThemedView>
     );
   }
@@ -163,4 +186,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lyrics: { fontSize: 18, lineHeight: 30 },
+  backButton: { marginTop: Spacing.three, paddingHorizontal: Spacing.four, paddingVertical: Spacing.two },
 });

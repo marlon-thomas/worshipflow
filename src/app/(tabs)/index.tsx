@@ -60,6 +60,13 @@ export default function SetlistsScreen() {
 
         {loading ? (
           <ActivityIndicator color={theme.text} style={styles.loading} />
+        ) : !team ? (
+          <ThemedView style={styles.noTeam}>
+            <ThemedText type="subtitle">No team yet</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              Create or join a team to manage setlists.
+            </ThemedText>
+          </ThemedView>
         ) : (
           <FlatList
             data={[...upcoming, ...past]}
@@ -115,6 +122,7 @@ const styles = StyleSheet.create({
   },
   loading: { marginTop: Spacing.five },
   empty: { marginTop: Spacing.five, textAlign: 'center' },
+  noTeam: { marginTop: Spacing.five, alignItems: 'center', gap: Spacing.two, textAlign: 'center', paddingHorizontal: Spacing.four },
   card: {
     borderRadius: Spacing.two,
     paddingHorizontal: Spacing.three,
